@@ -20,10 +20,13 @@ app = Flask(__name__)
 # 初始化服务
 wechat_service = WechatBotService()
 
-@app.route('/wechat/callback/<code>', methods=['GET', 'POST'])
-def wechat_callback(code):
+@app.route('/wechat/callback', methods=['GET', 'POST'])
+# @app.route('/wechat/callback/<code>', methods=['GET', 'POST'])
+# def wechat_callback(code):
+def wechat_callback():
     """企业微信回调接口"""
-    
+    # code = 'default'
+
     if request.method == 'GET':
         # URL验证
         msg_signature = request.args.get('msg_signature', '')
@@ -41,7 +44,7 @@ def wechat_callback(code):
             return reply
         else:
             print("URL验证失败")
-            return 'URL验证失败', 403
+            return 'URL验证失败', 500
     
     elif request.method == 'POST':
         # 处理消息

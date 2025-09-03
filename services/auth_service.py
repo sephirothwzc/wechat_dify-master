@@ -15,31 +15,32 @@ class AuthService:
     """用户认证服务类"""
     
     def __init__(self):
-        # 初始化Redis连接
-        self.redis_client = redis.Redis(
-            host=config.REDIS_HOST,
-            port=config.REDIS_PORT,
-            password=config.REDIS_PASSWORD,
-            db=config.REDIS_DB,
-            decode_responses=True
-        )
+        return
+        # # 初始化Redis连接
+        # self.redis_client = redis.Redis(
+        #     host=config.REDIS_HOST,
+        #     port=config.REDIS_PORT,
+        #     password=config.REDIS_PASSWORD,
+        #     db=config.REDIS_DB,
+        #     decode_responses=True
+        # )
         
-        # 测试Redis连接
-        try:
-            self.redis_client.ping()
-            print(f"Redis连接成功: {config.REDIS_HOST}:{config.REDIS_PORT}, DB: {config.REDIS_DB}")
-        except Exception as e:
-            print(f"Redis连接失败: {e}")
+        # # 测试Redis连接
+        # try:
+        #     self.redis_client.ping()
+        #     print(f"Redis连接成功: {config.REDIS_HOST}:{config.REDIS_PORT}, DB: {config.REDIS_DB}")
+        # except Exception as e:
+        #     print(f"Redis连接失败: {e}")
         
-        # MySQL连接配置
-        self.mysql_config = {
-            'host': config.MYSQL_HOST,
-            'port': config.MYSQL_PORT,
-            'user': config.MYSQL_USER,
-            'password': config.MYSQL_PASSWORD,
-            'database': config.MYSQL_DATABASE,
-            'charset': 'utf8mb4'
-        }
+        # # MySQL连接配置
+        # self.mysql_config = {
+        #     'host': config.MYSQL_HOST,
+        #     'port': config.MYSQL_PORT,
+        #     'user': config.MYSQL_USER,
+        #     'password': config.MYSQL_PASSWORD,
+        #     'database': config.MYSQL_DATABASE,
+        #     'charset': 'utf8mb4'
+        # }
     
     def get_user_token(self, from_user):
         """
@@ -47,80 +48,91 @@ class AuthService:
         1. 先从Redis中查找token
         2. 如果没有，从MySQL查询用户信息并获取新token
         """
-        try:
-            # 步骤1: 从Redis获取token
-            token_key = f"authorization:wechatid:{from_user}"
-            token = self.redis_client.get(token_key)
+        # try:
+        #     # 步骤1: 从Redis获取token
+        #     token_key = f"authorization:wechatid:{from_user}"
+        #     token = self.redis_client.get(token_key)
             
-            if token:
-                # 步骤2: 验证token是否有效
-                token_valid_key = f"authorization:token:{token}"
-                if self.redis_client.exists(token_valid_key):
-                    print(f"从Redis获取到有效token: {token}")
-                    # 尝试获取用户信息
-                    user_info_key = f"userinfo:wechatid:{from_user}"
-                    user_info_str = self.redis_client.get(user_info_key)
-                    if user_info_str:
-                        try:
-                            user_info = json.loads(user_info_str)
-                            print(f"从Redis获取到用户信息: {user_info['user_name']}")
-                            return token, user_info
-                        except json.JSONDecodeError:
-                            print("用户信息JSON解析失败")
+        #     if token:
+        #         # 步骤2: 验证token是否有效
+        #         token_valid_key = f"authorization:token:{token}"
+        #         if self.redis_client.exists(token_valid_key):
+        #             print(f"从Redis获取到有效token: {token}")
+        #             # 尝试获取用户信息
+        #             user_info_key = f"userinfo:wechatid:{from_user}"
+        #             user_info_str = self.redis_client.get(user_info_key)
+        #             if user_info_str:
+        #                 try:
+        #                     user_info = json.loads(user_info_str)
+        #                     print(f"从Redis获取到用户信息: {user_info['user_name']}")
+        #                     return token, user_info
+        #                 except json.JSONDecodeError:
+        #                     print("用户信息JSON解析失败")
                     
-                    # 如果没有用户信息，从MySQL重新获取
-                    print("Redis中没有用户信息，从MySQL重新获取")
-                    user_info = self._get_user_info_from_mysql(from_user)
-                    if user_info:
-                        # 保存用户信息到Redis
-                        try:
-                            user_info_json = json.dumps(user_info, ensure_ascii=False)
-                            self.redis_client.set(user_info_key, user_info_json, ex=604800)
-                            print(f"用户信息已保存到Redis")
-                        except Exception as e:
-                            print(f"保存用户信息到Redis失败: {e}")
+        #             # 如果没有用户信息，从MySQL重新获取
+        #             print("Redis中没有用户信息，从MySQL重新获取")
+        #             user_info = self._get_user_info_from_mysql(from_user)
+        #             if user_info:
+        #                 # 保存用户信息到Redis
+        #                 try:
+        #                     user_info_json = json.dumps(user_info, ensure_ascii=False)
+        #                     self.redis_client.set(user_info_key, user_info_json, ex=604800)
+        #                     print(f"用户信息已保存到Redis")
+        #                 except Exception as e:
+        #                     print(f"保存用户信息到Redis失败: {e}")
                     
-                    return token, user_info
-                else:
-                    print(f"token已失效: {token}")
-                    # token无效，删除旧token和用户信息
-                    self.redis_client.delete(token_key)
-                    user_info_key = f"userinfo:wechatid:{from_user}"
-                    self.redis_client.delete(user_info_key)
+        #             return token, user_info
+        #         else:
+        #             print(f"token已失效: {token}")
+        #             # token无效，删除旧token和用户信息
+        #             self.redis_client.delete(token_key)
+        #             user_info_key = f"userinfo:wechatid:{from_user}"
+        #             self.redis_client.delete(user_info_key)
             
-            # 步骤3: 从MySQL查询用户信息
-            user_info = self._get_user_info_from_mysql(from_user)
-            if not user_info:
-                print(f"在MySQL中未找到用户: {from_user}")
-                return None, None
+        #     # 步骤3: 从MySQL查询用户信息
+        #     user_info = self._get_user_info_from_mysql(from_user)
+        #     if not user_info:
+        #         print(f"在MySQL中未找到用户: {from_user}")
+        #         return None, None
             
-            # 步骤4: 获取新token
-            new_token = self._get_token_from_auth_service(user_info)
-            if new_token:
-                # 保存新token和用户信息到Redis，设置7天过期时间
-                try:
-                    # 设置token，过期时间7天（604800秒）
-                    self.redis_client.set(token_key, new_token, ex=604800)
-                    print(f"获取到新token并保存到Redis: {new_token}")
+        #     # 步骤4: 获取新token
+        #     new_token = self._get_token_from_auth_service(user_info)
+        #     if new_token:
+        #         # 保存新token和用户信息到Redis，设置7天过期时间
+        #         try:
+        #             # 设置token，过期时间7天（604800秒）
+        #             self.redis_client.set(token_key, new_token, ex=604800)
+        #             print(f"获取到新token并保存到Redis: {new_token}")
                     
-                    # 同时保存用户信息
-                    user_info_key = f"userinfo:wechatid:{from_user}"
-                    user_info_json = json.dumps(user_info, ensure_ascii=False)
-                    self.redis_client.set(user_info_key, user_info_json, ex=604800)
-                    print(f"用户信息已保存到Redis")
+        #             # 同时保存用户信息
+        #             user_info_key = f"userinfo:wechatid:{from_user}"
+        #             user_info_json = json.dumps(user_info, ensure_ascii=False)
+        #             self.redis_client.set(user_info_key, user_info_json, ex=604800)
+        #             print(f"用户信息已保存到Redis")
                     
-                except Exception as redis_error:
-                    print(f"Redis操作异常: {redis_error}")
-                    return None, user_info
-                return new_token, user_info
-            else:
-                print(f"获取token失败，用户编码: {user_info['user_code']}")
-                return None, user_info
+        #         except Exception as redis_error:
+        #             print(f"Redis操作异常: {redis_error}")
+        #             return None, user_info
+        #         return new_token, user_info
+        #     else:
+        #         print(f"获取token失败，用户编码: {user_info['user_code']}")
+        #         return None, user_info
                 
-        except Exception as e:
-            print(f"获取用户token时发生错误: {e}")
-            return None, None
-    
+        # except Exception as e:
+        #     print(f"获取用户token时发生错误: {e}")
+        #     return None, None
+          # 模拟token和用户信息
+        token = "mock_token_123456"
+        user_info = {
+            'phone': '13800000000',
+            'user_code': 'MOCK_USER',
+            'user_name': '测试用户',
+            'gender': '未知',
+            'password': 'mock_password'
+        }
+        print(f"跳过所有验证，直接返回token和用户信息: {token}, {user_info}")
+        return token, user_info
+
     def _get_user_info_from_mysql(self, from_user):
         """从MySQL查询用户信息"""
         try:

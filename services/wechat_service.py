@@ -16,6 +16,7 @@ class WechatBotService:
         self.encoding_aes_key = config.WECHAT_ENCODING_AES_KEY
         # 智能机器人的receiveid是空串
         self.receiveid = ''
+        # self.receiveid = config.WECHAT_CORP_ID
         
         # 初始化加密工具
         if self.token and self.encoding_aes_key:
