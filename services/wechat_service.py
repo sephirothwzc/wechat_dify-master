@@ -22,12 +22,12 @@ class WechatBotService:
         if self.token and self.encoding_aes_key:
             try:
                 self.wxcrypt = WXBizJsonMsgCrypt(self.token, self.encoding_aes_key, self.receiveid)
-                print("加密工具初始化成功")
+                print("加密工具初始化成功", flush=True)
             except Exception as e:
-                print(f"加密工具初始化失败: {e}")
+                print(f"加密工具初始化失败: {e}", flush=True)
                 self.wxcrypt = None
         else:
-            print("加密工具初始化失败: 缺少必要参数")
+            print("加密工具初始化失败: 缺少必要参数", flush=True)
             self.wxcrypt = None
     
     def verify_signature(self, signature, timestamp, nonce, echostr=None):
@@ -79,7 +79,7 @@ class WechatBotService:
                 print(f"不支持的消息内容类型: {type(json_content)}")
                 return None
                 
-            print(f"解析JSON消息: {json_data}")
+            print(f"解析JSON消息: {json_data}", flush=True)
             
             message_info = {
                 'msg_type': json_data.get('msgtype', ''),

@@ -7,6 +7,7 @@
 
 import json
 import time
+import random
 from flask import Flask, request, jsonify, Response
 
 # 导入配置和服务
@@ -55,9 +56,9 @@ def wechat_callback():
         try:
             # 获取加密的消息数据
             encrypt_msg = request.data
-            print(f"收到原始消息数据: {encrypt_msg[:200]}...")
-            print(f"消息数据类型: {type(encrypt_msg)}")
-            print(f"消息数据长度: {len(encrypt_msg)}")
+            print(f"收到原始消息数据: {encrypt_msg[:200]}...", flush=True)
+            print(f"消息数据类型: {type(encrypt_msg)}", flush=True)
+            print(f"消息数据长度: {len(encrypt_msg)}", flush=True)
             
             # 解密消息
             success, decrypted_msg = wechat_service.decrypt_message(
@@ -65,18 +66,18 @@ def wechat_callback():
             )
             
             if not success:
-                print("消息解密失败")
+                print("消息解密失败", flush=True)
                 return 'Decryption failed', 400
             
-            print(f"解密后的消息: {decrypted_msg}")
+            print(f"解密后的消息: {decrypted_msg}", flush=True)
             
             # 解析消息
             message_info = wechat_service.parse_message(decrypted_msg)
             if not message_info:
-                print("消息解析失败")
+                print("消息解析失败", flush=True)
                 return 'Parse failed', 400
             
-            print(f"解析后的消息信息: {message_info}")
+            print(f"解析后的消息信息: {message_info}", flush=True)
             from_user = message_info["from_user"]
             msgtype = message_info['msg_type']
             stream_id = message_info.get('stream_id', '')
@@ -85,7 +86,7 @@ def wechat_callback():
             if msgtype == 'text' and message_info['content']:
                 # 文本消息处理 - 启动思考流程
                 content = message_info['content']
-                print(f"收到文本消息: {content}")
+                print(f"收到文本消息: {content}", flush=True)
 
                 # 获取用户认证信息
                 from services.auth_service import AuthService
@@ -121,6 +122,8 @@ def wechat_callback():
                 # 2. 创建流式任务（立即启动独立线程处理Dify）
                 from services.stream_manager import stream_manager
                 
+                print("stream_manager 初始化成功", flush=True)
+                code = random.randint(100000, 999999)  # 生成 6 位数字
                 success = stream_manager.create_stream(
                     stream_id, content, token, user_info, from_user, code
                 )
@@ -139,7 +142,7 @@ def wechat_callback():
                 stream = MakeTextStream(stream_id, thinking_message, False)
                 resp = EncryptMessage(wechat_service.wxcrypt, '', nonce, timestamp, stream)
                 
-                print(f"创建流式任务成功，返回思考中消息，stream_id: {stream_id}")
+                print(f"创建流式任务成功，返回思考中消息，stream_id: {stream_id}", flush=True)
                 
                 if resp:
                     return Response(response=resp, mimetype="text/plain")
@@ -150,7 +153,7 @@ def wechat_callback():
                 # 流式消息处理 - 逐步返回Dify流式内容
                 if stream_id:
                     msg_id = message_info.get('msg_id', '')
-                    print(f"收到流式消息请求，stream_id: {stream_id}, msg_id: {msg_id}")
+                    print(f"收到流式消息请求，stream_id: {stream_id}, msg_id: {msg_id}", flush=True)
                     
                     # 简单的重复请求检测
                     import os
@@ -163,7 +166,7 @@ def wechat_callback():
                                 last_msg_id = f.read().strip()
                             
                             if last_msg_id == msg_id:
-                                print(f"检测到重复请求，忽略: {msg_id}")
+                                print(f"检测到重复请求，忽略: {msg_id}", flush=True)
                                 return Response(response="success", mimetype="text/plain")
                         
                         # 记录当前请求ID
@@ -171,7 +174,7 @@ def wechat_callback():
                             f.write(msg_id)
                     
                     except Exception as e:
-                        print(f"重复请求检测失败: {e}")
+                        print(f"重复请求检测失败: {e}", flush=True)
                     
                     try:
                         from services.stream_manager import stream_manager
@@ -181,21 +184,21 @@ def wechat_callback():
                         
                         if response_stream_id is None:
                             # 流式任务不存在
-                            print(f"流式任务不存在: {stream_id}")
+                            print(f"流式任务不存在: {stream_id}", flush=True)
                             return Response(response="success", mimetype="text/plain")
                         
                         # 生成企微流式消息
                         stream = MakeTextStream(stream_id, content, is_finished)
                         resp = EncryptMessage(wechat_service.wxcrypt, '', nonce, timestamp, stream)
                         
-                        print(f"返回流式消息，stream_id: {stream_id}, 内容长度: {len(content)}, 是否完成: {is_finished}")
+                        print(f"返回流式消息，stream_id: {stream_id}, 内容长度: {len(content)}, 是否完成: {is_finished}", flush=True)
                         
                         # 如果完成了，清理重复检测文件和缓存
                         if is_finished:
                             try:
                                 if os.path.exists(duplicate_check_file):
                                     os.remove(duplicate_check_file)
-                                print(f"流式任务完成，清理重复检测文件: {stream_id}")
+                                print(f"流式任务完成，清理重复检测文件: {stream_id}", flush=True)
                                 
                                 # 延迟清理缓存文件，给企微一些时间重新请求
                                 import threading
@@ -208,7 +211,7 @@ def wechat_callback():
                                 cleanup_thread.daemon = True
                                 cleanup_thread.start()
                             except Exception as e:
-                                print(f"清理资源时发生错误: {e}")
+                                print(f"清理资源时发生错误: {e}", flush=True)
                         
                         if resp:
                             return Response(response=resp, mimetype="text/plain")
@@ -250,7 +253,7 @@ def wechat_callback():
                 return Response(response="success", mimetype="text/plain")
             
         except Exception as e:
-            print(f"处理消息时发生错误: {e}")
+            print(f"处理消息时发生错误: {e}", flush=True)
             return 'Internal error', 500
 
 @app.route('/health', methods=['GET'])

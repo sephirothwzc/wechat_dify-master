@@ -35,9 +35,9 @@ class StreamManager:
             )
             # 测试连接
             self.redis_client.ping()
-            print("Redis连接成功")
+            print("Redis连接成功", flush=True)
         except Exception as e:
-            print(f"Redis连接失败: {e}")
+            print(f"Redis连接失败: {e}", flush=True)
             raise e
     
     def create_stream(self, stream_id, content, token, user_info, from_user, code):
@@ -56,7 +56,8 @@ class StreamManager:
                 "dify_finished": False,  # Dify是否完成
                 "error_message": ""
             }
-            
+
+            print(f"解析cache_data: {cache_data}", flush=True)
             # 存储到Redis，使用stream_id作为key，设置过期时间30分钟
             redis_key = f"dify_stream:{stream_id}"
             self.redis_client.setex(redis_key, 1800, json.dumps(cache_data, ensure_ascii=False))
@@ -72,11 +73,11 @@ class StreamManager:
             with self.lock:
                 self.active_threads[stream_id] = thread
             
-            print(f"创建流式任务并启动处理线程: {stream_id}")
+            print(f"创建流式任务并启动处理线程: {stream_id}", flush=True)
             return True
             
         except Exception as e:
-            print(f"创建流式任务失败: {e}")
+            print(f"创建流式任务失败: {e}", flush=True)
             return False
     
     def _process_dify_stream_thread(self, stream_id, content, token, user_info, code):
@@ -87,14 +88,14 @@ class StreamManager:
             # 读取当前缓存数据
             cache_json = self.redis_client.get(redis_key)
             if not cache_json:
-                print(f"Redis中未找到stream数据: {stream_id}")
+                print(f"Redis中未找到stream数据: {stream_id}", flush=True)
                 return
                 
             cache_data = json.loads(cache_json)
             
             conversation_id = cache_data.get("conversation_id", "")
             
-            print(f"开始处理Dify流式响应: {stream_id}")
+            print(f"开始处理Dify流式响应: {stream_id}", flush=True)
             
             # 调用Dify服务
             dify_service = DifyService()
@@ -120,7 +121,7 @@ class StreamManager:
                     # 保存到Redis
                     self.redis_client.setex(redis_key, 1800, json.dumps(cache_data, ensure_ascii=False))
                     
-                    print(f"Dify处理出错: {content_chunk}")
+                    print(f"Dify处理出错: {content_chunk}", flush=True)
                     break
                 
                 # 更新conversation_id
@@ -140,8 +141,8 @@ class StreamManager:
                         "is_error": False
                     }]
                     
-                    print(f"[调试] Dify返回内容块 (长度: {len(content_chunk)}): {content_chunk[:100]}...")
-                    print(f"[调试] 累计内容长度: {len(accumulated_content)}, 消息队列长度: {len(cache_data['messages'])}")
+                    print(f"[调试] Dify返回内容块 (长度: {len(content_chunk)}): {content_chunk[:100]}...", flush=True)
+                    print(f"[调试] 累计内容长度: {len(accumulated_content)}, 消息队列长度: {len(cache_data['messages'])}", flush=True)
                 
                 # 如果完成了
                 if is_finished:
@@ -162,10 +163,10 @@ class StreamManager:
                             "is_error": False
                         }]
                     
-                    print(f"[调试] Dify流式处理完成: {stream_id}")
-                    print(f"[调试] 总内容长度: {len(accumulated_content)}")
-                    print(f"[调试] 消息队列总数: {len(cache_data['messages'])}")
-                    print(f"[调试] Redis key: {redis_key}")
+                    print(f"[调试] Dify流式处理完成: {stream_id}", flush=True)
+                    print(f"[调试] 总内容长度: {len(accumulated_content)}", flush=True)
+                    print(f"[调试] 消息队列总数: {len(cache_data['messages'])}", flush=True)
+                    print(f"[调试] Redis key: {redis_key}", flush=True)
                 
                 # 保存到Redis
                 self.redis_client.setex(redis_key, 1800, json.dumps(cache_data, ensure_ascii=False))
@@ -177,7 +178,7 @@ class StreamManager:
                 time.sleep(0.1)
             
         except Exception as e:
-            print(f"Dify流式处理线程异常: {e}")
+            print(f"Dify流式处理线程异常: {e}", flush=True)
             import traceback
             traceback.print_exc()
             
@@ -203,7 +204,7 @@ class StreamManager:
                     self.redis_client.setex(redis_key, 1800, json.dumps(cache_data, ensure_ascii=False))
                     
             except Exception as save_error:
-                print(f"保存错误状态失败: {save_error}")
+                print(f"保存错误状态失败: {save_error}", flush=True)
         
         finally:
             # 清理线程引用
@@ -250,18 +251,18 @@ class StreamManager:
                 # 直接返回当前这一段的内容，让企微自己处理累积
                 content = unread_message["content"]
                 
-                print(f"[调试] 读取未读消息 - stream_id: {stream_id}")
-                print(f"[调试] 消息索引: {unread_index}, 内容长度: {len(content)}")
-                print(f"[调试] 内容预览: {content[:50]}...")
-                print(f"[调试] is_final: {is_final}, is_error: {is_error}")
-                print(f"[调试] 剩余未读消息数: {len([m for m in messages if not m.get('read', False)])}")
+                print(f"[调试] 读取未读消息 - stream_id: {stream_id}", flush=True)
+                print(f"[调试] 消息索引: {unread_index}, 内容长度: {len(content)}", flush=True)
+                print(f"[调试] 内容预览: {content[:50]}...", flush=True)
+                print(f"[调试] is_final: {is_final}, is_error: {is_error}", flush=True)
+                print(f"[调试] 剩余未读消息数: {len([m for m in messages if not m.get('read', False)])}", flush=True)
                 
                 # 如果是错误消息或最终消息，标记为完成
                 if is_error or is_final:
-                    print(f"[调试] 返回最终消息，完成流式任务")
+                    print(f"[调试] 返回最终消息，完成流式任务", flush=True)
                     return stream_id, content, True
                 else:
-                    print(f"[调试] 返回中间消息，继续流式任务")
+                    print(f"[调试] 返回中间消息，继续流式任务", flush=True)
                     return stream_id, content, False
             
             else:
@@ -274,7 +275,7 @@ class StreamManager:
                     return stream_id, "正在处理中...", False
                 
         except Exception as e:
-            print(f"读取未读消息失败: {e}")
+            print(f"读取未读消息失败: {e}", flush=True)
             import traceback
             traceback.print_exc()
             return stream_id, f"读取消息失败: {str(e)}", True
@@ -290,10 +291,10 @@ class StreamManager:
                 if stream_id in self.active_threads:
                     del self.active_threads[stream_id]
                 
-            print(f"清理流式任务: {stream_id}")
+            print(f"清理流式任务: {stream_id}", flush=True)
             
         except Exception as e:
-            print(f"清理流式任务失败: {e}")
+            print(f"清理流式任务失败: {e}", flush=True)
     
     def get_stream_status(self, stream_id):
         """获取流式任务状态"""
@@ -308,7 +309,7 @@ class StreamManager:
             return cache_data.get("status", "unknown")
             
         except Exception as e:
-            print(f"获取流式任务状态失败: {e}")
+            print(f"获取流式任务状态失败: {e}", flush=True)
             return "error"
 
 

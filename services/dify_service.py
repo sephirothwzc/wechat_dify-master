@@ -36,9 +36,12 @@ class DifyService:
             
             # 构建请求头
             headers = {
-                'Authorization': f"{self.auth_prefix} {code} {token}",
+                # 'Authorization': f"{self.auth_prefix} {code} {token}",
+                'Authorization': f"{self.auth_prefix}",
                 'Content-Type': 'application/json'
             }
+            
+            print(f"发送Dify请求headers: {headers}", flush=True)
             
             # 如果没有提供stream_id，对于新对话使用空字符串
             if not stream_id:
@@ -52,26 +55,35 @@ class DifyService:
             time_info = auth_service.get_time_info()
             
             # 构建请求体
+            # payload = {
+            #     "inputs": {
+            #         "token": token,
+            #         "userCode": user_info.get('user_code', ''),
+            #         "userName": user_info.get('user_name', ''),
+            #         "timeinfo": time_info,
+            #         "role": "all",
+            #         "isNetwork": "0",
+            #         "isR1": "0",
+            #         "gender": user_info.get('gender', '')
+            #     },
+            #     "query": content,
+            #     "response_mode": "streaming",
+            #     "conversation_id": conversation_id,
+            #     "user": user_info.get('user_code', ''),
+            #     "files": []
+            # }
             payload = {
                 "inputs": {
-                    "token": token,
-                    "userCode": user_info.get('user_code', ''),
-                    "userName": user_info.get('user_name', ''),
-                    "timeinfo": time_info,
-                    "role": "all",
-                    "isNetwork": "0",
-                    "isR1": "0",
-                    "gender": user_info.get('gender', '')
+                  "query": content,
                 },
-                "query": content,
                 "response_mode": "streaming",
                 "conversation_id": conversation_id,
                 "user": user_info.get('user_code', ''),
                 "files": []
             }
             
-            print(f"发送Dify请求: {url}")
-            print(f"请求payload: {json.dumps(payload, ensure_ascii=False)}")
+            print(f"发送Dify请求: {url}", flush=True)
+            print(f"请求payload: {json.dumps(payload, ensure_ascii=False)}", flush=True)
             
             # 发送流式请求
             response = requests.post(
@@ -83,7 +95,7 @@ class DifyService:
             )
             
             if response.status_code != 200:
-                print(f"Dify请求失败，状态码: {response.status_code}, 响应: {response.text}")
+                print(f"Dify请求失败，状态码: {response.status_code}, 响应: {response.text}", flush=True)
                 yield None, f"Dify请求失败: {response.status_code}", True
                 return
             
